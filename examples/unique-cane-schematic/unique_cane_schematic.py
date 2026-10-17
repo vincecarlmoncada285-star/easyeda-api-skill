@@ -1,7 +1,6 @@
 """Circuit schematic for the UNIQUE-CANE prototype (Figure 2 of the paper).
 
-Board: classic ESP32-DevKitC (ESP32-WROOM-32). Pin map: TRIG = GPIO18,
-ECHO = GPIO19, PWMA = GPIO21, AIN2 = GPIO22. Run:
+Connections follow Table 1 (ESP32 WROOM32 Pin Assignments). Run:
 
     pip install schemdraw matplotlib
     python unique_cane_schematic.py
@@ -47,14 +46,14 @@ def siglabel(d, at, text):
 
 with schemdraw.Drawing(show=False) as d:
 
-    # ---------------- U1 ESP32-DevKitC (centre) ----------------
+    # ---------------- U1 ESP32 WROOM32 DevKit (centre) ----------------
     esp = elm.Ic(
         pins=[P('5V', 'top'), P('3V3', 'top'),
               P('GND', 'bot'),
-              P('GPIO22', 'right'), P('GPIO21', 'right'),
-              P('GPIO19', 'right'), P('GPIO18', 'right')],
-        size=(4.6, 7.0), pinspacing=1.4, leadlen=0.7, plblsize=10,
-    ).theta(0).at((0, 0)).anchor('center').label('U1\nESP32-DevKitC\n(ESP32-WROOM-32)', 'center', fontsize=12, ofst=(-0.45, 0.35))
+              P('GPIO21 (D21)', 'right'), P('GPIO19 (D19)', 'right'),
+              P('GPIO18 (D18)', 'right'), P('GPIO5 (D5)', 'right')],
+        size=(6.2, 7.0), pinspacing=1.4, leadlen=0.7, plblsize=10,
+    ).theta(0).at((0, 0)).anchor('center').label('U1\nESP32 WROOM32\nDevKit', 'center', fontsize=12, ofst=(-1.35, 0.35))
     d += esp
 
     # ---------------- U2 HC-SR04 (top right) ----------------
@@ -67,9 +66,9 @@ with schemdraw.Drawing(show=False) as d:
 
     # ---------------- U3 TB6612FNG (bottom right) ----------------
     drv = elm.Ic(
-        pins=[P('VCC', 'top'), P('STBY', 'top'), P('AIN1', 'top'), P('VM', 'top'),
+        pins=[P('VCC', 'top'), P('STBY', 'top'), P('PWMA', 'top'), P('VM', 'top'),
               P('GND', 'bot'),
-              P('AIN2', 'left', '2/5'), P('PWMA', 'left', '4/5'),
+              P('AIN2', 'left', '2/5'), P('AIN1', 'left', '4/5'),
               P('AO2', 'right', '2/5'), P('AO1', 'right', '4/5')],
         size=(5.2, 4.4), pinspacing=1.3, leadlen=0.7, plblsize=10,
     ).theta(0).at((12.5, -5.4)).anchor('center').label('U3\nTB6612FNG\nMotor Driver (ch. A)', 'center', fontsize=11)
@@ -83,31 +82,31 @@ with schemdraw.Drawing(show=False) as d:
     ).theta(0).at((-9.0, 1.2)).anchor('center').label('U4\nDC-DC Boost\nConverter\n(5.0 V out)', 'center', fontsize=10)
     d += boost
 
-    # ---- ESP32 -> HC-SR04 signals (TRIG = GPIO18, ECHO = GPIO19) ----
-    x_trig, x_echo = 6.4, 7.6
-    t, e = esp.GPIO18, esp.GPIO19
+    # ---- ESP32 -> HC-SR04 signals (TRIG = GPIO5, ECHO = GPIO18) ----
+    x_trig, x_echo = 6.9, 8.1
+    t, e = esp['GPIO5 (D5)'], esp['GPIO18 (D18)']
     wire(d, t, (x_trig, t[1]), (x_trig, us.TRIG[1]), us.TRIG)
     wire(d, e, (x_echo, e[1]), (x_echo, us.ECHO[1]), us.ECHO)
     siglabel(d, t, 'TRIG')
     siglabel(d, e, 'ECHO')
 
-    # ---- ESP32 -> TB6612FNG control (PWMA = GPIO21, AIN2 = GPIO22) ----
-    x_dir, x_pwm = 6.4, 7.6
-    p, r = esp.GPIO21, esp.GPIO22
-    wire(d, p, (x_pwm, p[1]), (x_pwm, drv.PWMA[1]), drv.PWMA)
-    wire(d, r, (x_dir, r[1]), (x_dir, drv.AIN2[1]), drv.AIN2)
-    siglabel(d, p, 'PWM')
-    siglabel(d, r, 'DIR')
+    # ---- ESP32 -> TB6612FNG direction control (AIN1 = GPIO19, AIN2 = GPIO21) ----
+    x_in2, x_in1 = 6.9, 8.1
+    a1, a2 = esp['GPIO19 (D19)'], esp['GPIO21 (D21)']
+    wire(d, a1, (x_in1, a1[1]), (x_in1, drv.AIN1[1]), drv.AIN1)
+    wire(d, a2, (x_in2, a2[1]), (x_in2, drv.AIN2[1]), drv.AIN2)
+    siglabel(d, a1, 'IN1')
+    siglabel(d, a2, 'IN2')
 
     # ---- HC-SR04 power ----
-    vdd(d, us.VCC, '+5V')
+    vdd(d, us.VCC, '3V3')
     gnd(d, us.GND)
 
-    # ---- TB6612FNG power and tie-highs: VCC, STBY, AIN1 -> 3V3 ; VM -> +5V ----
+    # ---- TB6612FNG power and tie-highs: VCC, STBY, PWMA -> 3V3 ; VM -> +5V ----
     y_bus = drv.VCC[1] + 0.7
-    for name in ('VCC', 'STBY', 'AIN1'):
+    for name in ('VCC', 'STBY', 'PWMA'):
         wire(d, drv[name], (drv[name][0], y_bus))
-    wire(d, (drv.VCC[0], y_bus), (drv.AIN1[0], y_bus))
+    wire(d, (drv.VCC[0], y_bus), (drv.PWMA[0], y_bus))
     d += elm.Dot().at((drv.STBY[0], y_bus))
     mid = ((drv.VCC[0] + drv.STBY[0]) / 2, y_bus)
     vdd(d, mid, '3V3', rise=0.5)
@@ -154,7 +153,7 @@ with schemdraw.Drawing(show=False) as d:
     # ---- Notes ----
     d += elm.Label().at((-17.5, -9.4)).label(
         'Notes:  All ground symbols are one common ground.   +5V = boost converter VOUT+.   '
-        '3V3 = ESP32-DevKitC on-board 3.3 V regulator output.\n'
+        '3V3 = ESP32 on-board 3.3 V regulator output.  PWMA is held high, so the motor runs at full speed when on.\n'
         'TB6612FNG channel B (BIN1, BIN2, PWMB, BO1, BO2) is unused.',
         fontsize=9.5, halign='left', valign='top')
 
