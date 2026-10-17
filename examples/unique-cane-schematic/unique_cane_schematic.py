@@ -1,6 +1,7 @@
 """Circuit schematic for the UNIQUE-CANE prototype (Figure 2 of the paper).
 
-Connections follow Table 1 (ESP32-S3 Pin Assignments). Run:
+Board: classic ESP32-DevKitC (ESP32-WROOM-32). Pin map: TRIG = GPIO18,
+ECHO = GPIO19, PWMA = GPIO21, AIN2 = GPIO22. Run:
 
     pip install schemdraw matplotlib
     python unique_cane_schematic.py
@@ -46,14 +47,14 @@ def siglabel(d, at, text):
 
 with schemdraw.Drawing(show=False) as d:
 
-    # ---------------- U1 ESP32-S3 (centre) ----------------
+    # ---------------- U1 ESP32-DevKitC (centre) ----------------
     esp = elm.Ic(
         pins=[P('5V', 'top'), P('3V3', 'top'),
               P('GND', 'bot'),
-              P('GPIO47', 'right'), P('GPIO21', 'right'),
-              P('GPIO17', 'right'), P('GPIO20', 'right')],
+              P('GPIO22', 'right'), P('GPIO21', 'right'),
+              P('GPIO19', 'right'), P('GPIO18', 'right')],
         size=(4.6, 7.0), pinspacing=1.4, leadlen=0.7, plblsize=10,
-    ).theta(0).at((0, 0)).anchor('center').label('U1\nESP32-S3\nDevKit', 'center', fontsize=12)
+    ).theta(0).at((0, 0)).anchor('center').label('U1\nESP32-DevKitC\n(ESP32-WROOM-32)', 'center', fontsize=12, ofst=(-0.45, 0.35))
     d += esp
 
     # ---------------- U2 HC-SR04 (top right) ----------------
@@ -82,17 +83,17 @@ with schemdraw.Drawing(show=False) as d:
     ).theta(0).at((-9.0, 1.2)).anchor('center').label('U4\nDC-DC Boost\nConverter\n(5.0 V out)', 'center', fontsize=10)
     d += boost
 
-    # ---- ESP32 -> HC-SR04 signals (TRIG = GPIO20, ECHO = GPIO17) ----
+    # ---- ESP32 -> HC-SR04 signals (TRIG = GPIO18, ECHO = GPIO19) ----
     x_trig, x_echo = 6.4, 7.6
-    t, e = esp.GPIO20, esp.GPIO17
+    t, e = esp.GPIO18, esp.GPIO19
     wire(d, t, (x_trig, t[1]), (x_trig, us.TRIG[1]), us.TRIG)
     wire(d, e, (x_echo, e[1]), (x_echo, us.ECHO[1]), us.ECHO)
     siglabel(d, t, 'TRIG')
     siglabel(d, e, 'ECHO')
 
-    # ---- ESP32 -> TB6612FNG control (PWMA = GPIO21, AIN2 = GPIO47) ----
+    # ---- ESP32 -> TB6612FNG control (PWMA = GPIO21, AIN2 = GPIO22) ----
     x_dir, x_pwm = 6.4, 7.6
-    p, r = esp.GPIO21, esp.GPIO47
+    p, r = esp.GPIO21, esp.GPIO22
     wire(d, p, (x_pwm, p[1]), (x_pwm, drv.PWMA[1]), drv.PWMA)
     wire(d, r, (x_dir, r[1]), (x_dir, drv.AIN2[1]), drv.AIN2)
     siglabel(d, p, 'PWM')
@@ -153,7 +154,7 @@ with schemdraw.Drawing(show=False) as d:
     # ---- Notes ----
     d += elm.Label().at((-17.5, -9.4)).label(
         'Notes:  All ground symbols are one common ground.   +5V = boost converter VOUT+.   '
-        '3V3 = ESP32-S3 on-board 3.3 V regulator output.\n'
+        '3V3 = ESP32-DevKitC on-board 3.3 V regulator output.\n'
         'TB6612FNG channel B (BIN1, BIN2, PWMB, BO1, BO2) is unused.',
         fontsize=9.5, halign='left', valign='top')
 
